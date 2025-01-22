@@ -4,15 +4,21 @@ var uri = "http://localhost:5229/chat";
 
 await using var connection = new HubConnectionBuilder().WithUrl(uri).Build();
 
-connection.On<string, string>("NewMessage", (userName, message) =>
+connection.On<string, string>("ReceiveMessage", (userName, message) =>
 {
     Console.WriteLine($"{userName}: {message}");
 });
 
+
+Console.WriteLine("Digite seu nome!");
+var name = Console.ReadLine();
+Console.WriteLine("Digite o nome do grupo que voce quer entrar!");
+var grupo = Console.ReadLine();
+
 try
-{
+{    
     await connection.StartAsync();
-    Console.WriteLine("Conectado ao servidor SignalR.");
+    await connection.InvokeAsync("JoinGroup", grupo);        
 }
 catch (Exception ex)
 {
@@ -21,28 +27,29 @@ catch (Exception ex)
 }
 
 // Enviar mensagens ao servidor
-Console.WriteLine("Digite seu nome!");
-var name = Console.ReadLine();
-Console.WriteLine("Digite a mensagem ou 'sair' para encerrar:");
+
+
 string input;
-while ((input = Console.ReadLine()) != null)
+do
 {
+    Console.Write("--> : ");
+    input = Console.ReadLine();
+
     if (input.Equals("sair", StringComparison.OrdinalIgnoreCase))
         break;
-   
 
-    string userName = name;
     string message = input;
 
     try
     {
-        await connection.InvokeAsync("NewMessage", userName, message);
+        await connection.InvokeAsync("SendMessageToGroup", grupo, name, message);
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Erro ao enviar mensagem: {ex.Message}");
     }
-}
+
+} while (input != null);
 
 // Encerrar a conexão
 await connection.StopAsync();
